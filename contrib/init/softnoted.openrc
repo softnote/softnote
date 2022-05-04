@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/softnote/.softnote" ]; then
+	SOFTNOTED_DEFAULT_DATADIR="/var/lib/softnote/.softnote"
+else
+	SOFTNOTED_DEFAULT_DATADIR="/var/lib/softnoted"
+fi
+
+SOFTNOTED_CONFIGFILE=${SOFTNOTED_CONFIGFILE:-/etc/softnote/softnote.conf}
+SOFTNOTED_PIDDIR=${SOFTNOTED_PIDDIR:-/var/run/softnoted}
+SOFTNOTED_PIDFILE=${SOFTNOTED_PIDFILE:-${SOFTNOTED_PIDDIR}/softnoted.pid}
+SOFTNOTED_DATADIR=${SOFTNOTED_DATADIR:-${SOFTNOTED_DEFAULT_DATADIR}}
+SOFTNOTED_USER=${SOFTNOTED_USER:-${SOFTNOTE_USER:-softnote}}
+SOFTNOTED_GROUP=${SOFTNOTED_GROUP:-softnote}
+SOFTNOTED_BIN=${SOFTNOTED_BIN:-/usr/bin/softnoted}
+SOFTNOTED_NICE=${SOFTNOTED_NICE:-${NICELEVEL:-0}}
+SOFTNOTED_OPTS="${SOFTNOTED_OPTS:-${SOFTNOTE_OPTS}}"
+
+name="Softnote Core Daemon"
+description="Softnote cryptocurrency P2P network daemon"
+
+command="/usr/bin/softnoted"
+command_args="-pid=\"${SOFTNOTED_PIDFILE}\" \
+		-conf=\"${SOFTNOTED_CONFIGFILE}\" \
+		-datadir=\"${SOFTNOTED_DATADIR}\" \
+		-daemon \
+		${SOFTNOTED_OPTS}"
+
+required_files="${SOFTNOTED_CONFIGFILE}"
+start_stop_daemon_args="-u ${SOFTNOTED_USER} \
+			-N ${SOFTNOTED_NICE} -w 2000"
+pidfile="${SOFTNOTED_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${SOFTNOTED_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${SOFTNOTED_USER}:${SOFTNOTED_GROUP}" \
+	"${SOFTNOTED_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${SOFTNOTED_USER}:${SOFTNOTED_GROUP}" \
+	"${SOFTNOTED_PIDDIR}"
+
+	checkpath -f \
+	-o "${SOFTNOTED_USER}:${SOFTNOTED_GROUP}" \
+	-m 0660 \
+	"${SOFTNOTED_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${SOFTNOTED_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${SOFTNOTED_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run softnoted."
+		eerror "The setting must appear in ${SOFTNOTED_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Softnote Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

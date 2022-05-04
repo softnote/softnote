@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+#  softnoted The softnote core server.
+#
+#
+# chkconfig: 345 80 20
+# description: softnoted
+# processname: softnoted
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/softnoted, see below
+if [ -f /etc/sysconfig/softnoted ]; then
+        . /etc/sysconfig/softnoted
+fi
+
+RETVAL=0
+
+prog=softnoted
+# you can override the lockfile via SOFTNOTED_LOCKFILE in /etc/sysconfig/softnoted
+lockfile=${SOFTNOTED_LOCKFILE-/var/lock/subsys/softnoted}
+
+# softnoted defaults to /usr/bin/softnoted, override with SOFTNOTED_BIN
+softnoted=${SOFTNOTED_BIN-/usr/bin/softnoted}
+
+# softnoted opts default to -disablewallet, override with SOFTNOTED_OPTS
+softnoted_opts=${SOFTNOTED_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $softnoted $softnoted_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog -t600
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,33 @@
+# /etc/conf.d/softnoted: config file for /etc/init.d/softnoted
+
+# Config file location
+#SOFTNOTED_CONFIGFILE="/etc/softnote/softnote.conf"
+
+# What directory to write pidfile to?  (created and owned by $SOFTNOTED_USER)
+#SOFTNOTED_PIDDIR="/var/run/softnoted"
+
+# What filename to give the pidfile
+#SOFTNOTED_PIDFILE="${SOFTNOTED_PIDDIR}/softnoted.pid"
+
+# Where to write softnoted data (be mindful that the blockchain is large)
+#SOFTNOTED_DATADIR="/var/lib/softnoted"
+
+# User and group to own softnoted process
+#SOFTNOTED_USER="softnote"
+#SOFTNOTED_GROUP="softnote"
+
+# Path to softnoted executable
+#SOFTNOTED_BIN="/usr/bin/softnoted"
+
+# Nice value to run softnoted under
+#SOFTNOTED_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#SOFTNOTED_OPTS=""
+
+# The timeout in seconds OpenRC will wait for softnoted to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+SOFTNOTED_SIGTERM_TIMEOUT=600
